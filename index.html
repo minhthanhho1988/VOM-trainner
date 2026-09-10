@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>VOM Trainer - Tối Ưu Điện Thoại (Sanwa YX-360TR)</title>
+  <style>
+    :root {
+      --bg-primary: #090d16;
+      --bg-card: #131c2e;
+      --bg-inner: #0b1120;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #24344d;
+      --ohm-color: #38bdf8;
+      --s250-color: #ef4444;
+      --s50-color: #10b981;
+      --s10-color: #f59e0b;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 6px;
+    }
+
+    /* Header siêu gọn trên mobile */
+    header {
+      text-align: center;
+      margin-bottom: 6px;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    header h1 {
+      font-size: 1.15rem;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    /* Thanh chọn thang đo dạng cuộn ngang (Swipeable tabs) */
+    .scale-selector-bar {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-card);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 8px;
+      width: 100%;
+      max-width: 900px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .scale-selector-bar::-webkit-scrollbar { display: none; }
+
+    .scale-tab-btn {
+      flex: 1 0 auto;
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      background: var(--bg-inner);
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .scale-tab-btn.active-all { background: #0284c7; color: white; border-color: #38bdf8; }
+    .scale-tab-btn.active-ohm { background: rgba(56, 189, 248, 0.25); color: #38bdf8; border-color: #38bdf8; }
+    .scale-tab-btn.active-s250 { background: rgba(239, 68, 68, 0.25); color: #f87171; border-color: #ef4444; }
+    .scale-tab-btn.active-s50 { background: rgba(16, 185, 129, 0.25); color: #34d399; border-color: #10b981; }
+    .scale-tab-btn.active-s10 { background: rgba(245, 158, 11, 0.25); color: #fbbf24; border-color: #f59e0b; }
+
+    .main-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    /* Khung chứa mặt đồng hồ tối ưu tràn viền */
+    .meter-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 8px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+
+    .canvas-container {
+      position: relative;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.4);
+      border: 2px solid #64748b;
+      cursor: crosshair;
+      overflow: hidden;
+      touch-action: none;
+      width: 100%;
+      /* Tỷ lệ 720:410 - tập trung 100% diện tích cho các cung số */
+      aspect-ratio: 720 / 410;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .magnifier-lens {
+      position: absolute;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 3px solid #38bdf8;
+      box-shadow: 0 0 20px rgba(0,0,0,0.6), inset 0 0 12px rgba(56,189,248,0.4);
+      pointer-events: none;
+      display: none;
+      background: #ffffff;
+      overflow: hidden;
+      z-index: 10;
+    }
+
+    /* Thanh điều khiển kim đo thân thiện với ngón tay */
+    .meter-controls {
+      width: 100%;
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .slider-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-inner);
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .slider-box span {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    input[type=range] {
+      flex: 1;
+      accent-color: var(--accent);
+      height: 8px;
+      cursor: pointer;
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 4px;
+    }
+
+    @media (max-width: 480px) {
+      .btn-row {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5px;
+      }
+    }
+
+    button {
+      background: #1e293b;
+      color: var(--text-main);
+      border: 1px solid #334155;
+      padding: 8px 4px;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+    }
+
+    button:active {
+      background: #334155;
+      border-color: var(--accent);
+      transform: scale(0.97);
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: #0f172a;
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+
+    button.primary:active {
+      background: var(--accent-hover);
+      color: #fff;
+    }
+
+    /* Bảng thông số & Luyện tập */
+    .side-panel {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .mode-switch {
+      display: flex;
+      background: var(--bg-inner);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      width: 100%;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      cursor: pointer;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .mode-btn.active {
+      background: var(--accent);
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    /* Thẻ 4 thang đo */
+    .scale-card {
+      background: var(--bg-inner);
+      border-radius: 8px;
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      border-left-width: 4px;
+    }
+
+    .scale-card.ohm { border-left-color: var(--ohm-color); }
+    .scale-card.s250 { border-left-color: var(--s250-color); }
+    .scale-card.s50 { border-left-color: var(--s50-color); }
+    .scale-card.s10 { border-left-color: var(--s10-color); }
+
+    .scale-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3px;
+    }
+
+    .scale-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .scale-val {
+      font-size: 1.12rem;
+      font-weight: 800;
+      font-family: 'Consolas', 'Courier New', monospace;
+    }
+
+    .scale-formula {
+      background: rgba(0,0,0,0.35);
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-size: 0.74rem;
+      color: #e2e8f0;
+      margin-top: 3px;
+      font-family: 'Consolas', monospace;
+      border-left: 2px solid var(--accent);
+    }
+
+    .features-list {
+      margin-top: 4px;
+      padding-top: 4px;
+      border-top: 1px dashed rgba(255,255,255,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .feature-item {
+      font-size: 0.72rem;
+      color: #cbd5e1;
+      display: flex;
+      align-items: flex-start;
+      gap: 4px;
+      line-height: 1.3;
+    }
+
+    .badge-feature {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: bold;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.1);
+      white-space: nowrap;
+    }
+
+    /* Quiz Panel */
+    .quiz-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .quiz-stats {
+      display: flex;
+      justify-content: space-around;
+      background: var(--bg-inner);
+      padding: 6px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+    }
+
+    .stat-val {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--accent);
+      text-align: center;
+    }
+
+    .quiz-question-box {
+      background: var(--bg-inner);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #38bdf8;
+    }
+
+    .quiz-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: bold;
+      color: white;
+      margin-bottom: 4px;
+    }
+
+    .quiz-prompt {
+      font-size: 0.85rem;
+      font-weight: 600;
+      line-height: 1.35;
+      margin-bottom: 6px;
+    }
+
+    .quiz-input-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .quiz-input {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid #475569;
+      padding: 8px 10px;
+      border-radius: 6px;
+      color: white;
+      font-size: 1.1rem;
+      font-family: 'Consolas', monospace;
+      font-weight: bold;
+    }
+
+    .feedback-box {
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      display: none;
+      line-height: 1.35;
+    }
+
+    .feedback-box.correct {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid var(--success);
+      color: #4ade80;
+      display: block;
+    }
+
+    .feedback-box.wrong {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--danger);
+      color: #f87171;
+      display: block;
+    }
+
+    /* Memo Section */
+    .memo-section {
+      width: 100%;
+      max-width: 900px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .memo-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .memo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 6px;
+    }
+
+    .memo-card {
+      background: var(--bg-inner);
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      border-top: 3px solid;
+    }
+
+    .memo-card.ohm { border-top-color: var(--ohm-color); }
+    .memo-card.s250 { border-top-color: var(--s250-color); }
+    .memo-card.s50 { border-top-color: var(--s50-color); }
+    .memo-card.s10 { border-top-color: var(--s10-color); }
+
+    .memo-card-title {
+      font-size: 0.8rem;
+      font-weight: bold;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .memo-card ul {
+      list-style-type: none;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .memo-card li {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+
+    .memo-card li strong {
+      color: #f1f5f9;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>⚡ VOM Trainer (Sanwa YX-360TR)</h1>
+    <p>Chạm & kéo trực tiếp trên mặt đồng hồ để luyện đọc vạch chia</p>
+  </header>
+
+  <!-- THANH CHỌN THANG ĐO -->
+  <div class="scale-selector-bar">
+    <button class="scale-tab-btn active-all" id="tabAll" onclick="selectFocusScale('all')">🌟 Tất Cả 4 Vạch</button>
+    <button class="scale-tab-btn" id="tabOhm" onclick="selectFocusScale('ohm')">🔵 Ohm (0 - ∞)</button>
+    <button class="scale-tab-btn" id="tab250" onclick="selectFocusScale('s250')">🔴 Vạch 0 - 250</button>
+    <button class="scale-tab-btn" id="tab50" onclick="selectFocusScale('s50')">🟢 Vạch 0 - 50</button>
+    <button class="scale-tab-btn" id="tab10" onclick="selectFocusScale('s10')">🟡 Vạch 0 - 10</button>
+  </div>
+
+  <div class="main-layout">
+    
+    <!-- CỘT ĐỒNG HỒ -->
+    <div class="meter-card">
+      <div class="canvas-container" id="meterWrapper">
+        <canvas id="meterCanvas" width="720" height="410"></canvas>
+        <div class="magnifier-lens" id="magnifier">
+          <canvas id="magCanvas" width="140" height="140"></canvas>
+        </div>
+      </div>
+
+      <div class="meter-controls">
+        <div class="slider-box">
+          <span>Vị trí kim:</span>
+          <input type="range" id="needleSlider" min="0" max="1000" value="500">
+          <span id="posPercent" style="font-weight: bold; color: var(--accent); min-width: 40px; text-align: right;">50.0%</span>
+        </div>
+
+        <div class="btn-row">
+          <button id="btnFineLeft">◀ -1 vạch</button>
+          <button id="btnFineRight">+1 vạch ▶</button>
+          <button id="btnRand">🎲 Đổi vị trí</button>
+          <button id="btnPresetZero">0 (Gốc)</button>
+          <button id="btnPresetMid">50%</button>
+          <button id="btnPresetMax">100%</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CỘT BẢNG ĐỌC KẾT QUẢ & LUYỆN TẬP -->
+    <div class="side-panel">
+      <div class="mode-switch">
+        <button class="mode-btn active" id="tabExplore" onclick="switchMode('explore')">🔍 Khám Phá & Đọc Vạch</button>
+        <button class="mode-btn" id="tabQuiz" onclick="switchMode('quiz')">📝 Trắc Nghiệm / Luyện Tập</button>
+      </div>
+
+      <!-- CHẾ ĐỘ 1: KHÁM PHÁ -->
+      <div id="panelExplore" style="display: flex; flex-direction: column; gap: 6px;">
+        
+        <!-- Thang Ohm -->
+        <div class="scale-card ohm" id="cardOhm">
+          <div class="scale-header">
+            <div class="scale-title" style="color: var(--ohm-color);">
+              <span>🔵 Thang Điện Trở (0 - ∞ Ω)</span>
+            </div>
+            <div class="scale-val" id="valOhm" style="color: var(--ohm-color);">20.0 Ω</div>
+          </div>
+          <div class="scale-formula" id="formOhm">Đọc cung trên: ~ 20.0 Ω</div>
+          
+          <div class="features-list">
+            <div class="feature-item">
+              <span class="badge-feature" style="color: #38bdf8;">Đặc điểm</span>
+              <span>Đọc ngược từ <strong>Phải sang Trái</strong> ($0 \rightarrow \infty$). Tâm thang = <strong>$20\,\Omega$</strong>.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Thang 0 - 250 -->
+        <div class="scale-card s250" id="card250">
+          <div class="scale-header">
+            <div class="scale-title" style="color: var(--s250-color);">
+              <span>🔴 Vạch chia 0 - 250</span>
+            </div>
+            <div class="scale-val" id="val250" style="color: var(--s250-color);">125.0</div>
+          </div>
+          <div class="scale-formula" id="form250">100 + (5 vạch × 5) = 125.0</div>
+          
+          <div class="features-list">
+            <div class="feature-item">
+              <span class="badge-feature" style="color: #f87171;">ĐCNN</span>
+              <span><strong>5 đơn vị / vạch nhỏ</strong> (Hàng số dưới cùng, đọc từ trái qua phải).</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Thang 0 - 50 -->
+        <div class="scale-card s50" id="card50">
+          <div class="scale-header">
+            <div class="scale-title" style="color: var(--s50-color);">
+              <span>🟢 Vạch chia 0 - 50</span>
+            </div>
+            <div class="scale-val" id="val50" style="color: var(--s50-color);">25.0</div>
+          </div>
+          <div class="scale-formula" id="form50">20 + (5 vạch × 1) = 25.0</div>
+          
+          <div class="features-list">
+            <div class="feature-item">
+              <span class="badge-feature" style="color: #34d399;">ĐCNN</span>
+              <span><strong>1 đơn vị / vạch nhỏ</strong> (Hàng số ở giữa, dễ đếm nhất).</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Thang 0 - 10 -->
+        <div class="scale-card s10" id="card10">
+          <div class="scale-header">
+            <div class="scale-title" style="color: var(--s10-color);">
+              <span>🟡 Vạch chia 0 - 10</span>
+            </div>
+            <div class="scale-val" id="val10" style="color: var(--s10-color);">5.00</div>
+          </div>
+          <div class="scale-formula" id="form10">4.0 + (5 vạch × 0.2) = 5.00</div>
+          
+          <div class="features-list">
+            <div class="feature-item">
+              <span class="badge-feature" style="color: #fbbf24;">ĐCNN</span>
+              <span><strong>0.2 đơn vị / vạch nhỏ</strong> (Hàng số trên cùng, 5 vạch = 1 đơn vị).</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- CHẾ ĐỘ 2: TRẮC NGHIỆM -->
+      <div id="panelQuiz" class="quiz-container" style="display: none;">
+        
+        <div class="quiz-stats">
+          <div>
+            <div class="stat-val" id="statCorrect">0</div>
+            <div style="color: var(--success); font-size: 0.68rem; text-align: center;">Đúng</div>
+          </div>
+          <div>
+            <div class="stat-val" id="statTotal">0</div>
+            <div style="color: var(--text-muted); font-size: 0.68rem; text-align: center;">Tổng câu</div>
+          </div>
+          <div>
+            <div class="stat-val" id="statStreak">0 🔥</div>
+            <div style="color: var(--warning); font-size: 0.68rem; text-align: center;">Chuỗi đúng</div>
+          </div>
+        </div>
+
+        <div class="quiz-question-box">
+          <span class="quiz-badge" id="quizScaleBadge" style="background: #0284c7;">Vạch chia 0 - 50</span>
+          <div class="quiz-prompt" id="quizPrompt">
+            Quan sát kim trên đồng hồ và đọc giá trị tương ứng:
+          </div>
+
+          <div class="quiz-input-row">
+            <input type="number" step="any" inputmode="decimal" id="quizUserAnswer" class="quiz-input" placeholder="Nhập số..." onkeydown="if(event.key==='Enter') checkQuizAnswer()">
+            <span id="quizUnit" style="align-self: center; font-weight: bold; color: var(--accent); padding: 0 2px;"></span>
+            <button class="primary" onclick="checkQuizAnswer()">Kiểm tra</button>
+          </div>
+        </div>
+
+        <div class="feedback-box" id="quizFeedback"></div>
+
+        <div style="display: flex; gap: 5px;">
+          <button class="primary" style="flex: 1;" id="btnNextQuiz" onclick="generateNewQuiz()">🎲 Đổi vị trí kim mới</button>
+          <button onclick="revealQuizHint()">💡 Xem gợi ý</button>
+        </div>
+
+        <div class="guide-tip" id="quizHintText" style="display: none; font-size: 0.74rem; background: rgba(56,189,248,0.1); padding: 6px; border-radius: 6px; color: #bae6fd;"></div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- BẢNG TÓM TẮT ĐẶC ĐIỂM -->
+  <div class="memo-section">
+    <div class="memo-title">
+      <span>📖 Cẩm Nang Ghi Nhớ Nhanh 4 Vạch Chia</span>
+    </div>
+    <div class="memo-grid">
+      <div class="memo-card ohm">
+        <div class="memo-card-title" style="color: #38bdf8;">1. Thang Ohm (0 - ∞ Ω)</div>
+        <ul>
+          <li>• Đọc từ <strong style="color:#38bdf8">Phải sang Trái</strong> ($0 \rightarrow \infty$).</li>
+          <li>• Thang chia <strong>phi tuyến</strong> (không đều).</li>
+          <li>• Tâm thang chính giữa = <strong>$20\,\Omega$</strong>.</li>
+        </ul>
+      </div>
+
+      <div class="memo-card s250">
+        <div class="memo-card-title" style="color: #f87171;">2. Vạch 0 - 250</div>
+        <ul>
+          <li>• Đọc từ <strong style="color:#f87171">Trái sang Phải</strong> ($0 \rightarrow 250$).</li>
+          <li>• ĐCNN = <strong>5 đơn vị / vạch nhỏ</strong>.</li>
+          <li>• Vị trí: <strong>Hàng số dưới cùng</strong>.</li>
+        </ul>
+      </div>
+
+      <div class="memo-card s50">
+        <div class="memo-card-title" style="color: #34d399;">3. Vạch 0 - 50</div>
+        <ul>
+          <li>• Đọc từ <strong style="color:#34d399">Trái sang Phải</strong> ($0 \rightarrow 50$).</li>
+          <li>• ĐCNN = <strong>1 đơn vị / vạch nhỏ</strong>.</li>
+          <li>• Vị trí: <strong>Hàng số ở giữa</strong>.</li>
+        </ul>
+      </div>
+
+      <div class="memo-card s10">
+        <div class="memo-card-title" style="color: #fbbf24;">4. Vạch 0 - 10</div>
+        <ul>
+          <li>• Đọc từ <strong style="color:#fbbf24">Trái sang Phải</strong> ($0 \rightarrow 10$).</li>
+          <li>• ĐCNN = <strong>0.2 đơn vị / vạch nhỏ</strong>.</li>
+          <li>• Vị trí: <strong>Hàng số trên cùng</strong>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('meterCanvas');
+    const ctx = canvas.getContext('2d');
+    const magCanvas = document.getElementById('magCanvas');
+    const magCtx = magCanvas.getContext('2d');
+    const magnifier = document.getElementById('magnifier');
+
+    const slider = document.getElementById('needleSlider');
+    const posPercent = document.getElementById('posPercent');
+
+    let needleFraction = 0.50; // 0.0 to 1.0
+    let isDragging = false;
+    let currentMode = 'explore';
+    let focusedScale = 'all'; // 'all', 'ohm', 's250', 's50', 's10'
+
+    // KHUNG TOẠ ĐỘ TỐI ƯU CỰC ĐẠI CHO MÀN HÌNH ĐIỆN THOẠI (720 x 410)
+    // Tăng kích thước bán kính R lên 345px để số và vạch to rõ gần gấp đôi!
+    const CX = 360;
+    const CY = 375; 
+    const DEG_LEFT = 224;  // 224°
+    const DEG_RIGHT = 316; // 316°
+    const RAD_LEFT = (DEG_LEFT * Math.PI) / 180;
+    const RAD_RIGHT = (DEG_RIGHT * Math.PI) / 180;
+
+    function calcOhmValue(t) {
+      if (t <= 0.005) return Infinity;
+      if (t >= 0.995) return 0;
+      return 20 * (1 - t) / t;
+    }
+
+    function calcTFromOhm(rx) {
+      if (rx <= 0) return 1.0;
+      if (!isFinite(rx)) return 0.0;
+      return 20 / (rx + 20);
+    }
+
+    function getAngle(t) {
+      return RAD_LEFT + t * (RAD_RIGHT - RAD_LEFT);
+    }
+
+    function fixDpi() {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = 720 * (dpr > 1 ? 2 : 1);
+      canvas.height = 410 * (dpr > 1 ? 2 : 1);
+      ctx.resetTransform();
+      ctx.scale(canvas.width / 720, canvas.height / 410);
+    }
+
+    // DRAW THE DIAL
+    function drawDial() {
+      ctx.clearRect(0, 0, 720, 410);
+
+      // Background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 720, 410);
+
+      // Outer border
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(4, 4, 712, 402);
+
+      // Mirror Band
+      const rMirror = 295;
+      ctx.beginPath();
+      ctx.arc(CX, CY, rMirror + 10, RAD_LEFT, RAD_RIGHT, false);
+      ctx.arc(CX, CY, rMirror - 10, RAD_RIGHT, RAD_LEFT, true);
+      ctx.closePath();
+      const mirrorGrad = ctx.createLinearGradient(120, 100, 600, 100);
+      mirrorGrad.addColorStop(0, '#cbd5e1');
+      mirrorGrad.addColorStop(0.5, '#f8fafc');
+      mirrorGrad.addColorStop(1, '#cbd5e1');
+      ctx.fillStyle = mirrorGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Needle shadow in mirror
+      const curAngle = getAngle(needleFraction);
+      ctx.beginPath();
+      ctx.moveTo(CX, CY);
+      ctx.lineTo(CX + Math.cos(curAngle) * 365, CY + Math.sin(curAngle) * 365);
+      ctx.strokeStyle = 'rgba(100, 116, 139, 0.4)';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // -------------------------------------------------------------
+      // 1. THANG ĐO OHM (0 - ∞ Ω) - CUNG TRÊN CÙNG
+      // -------------------------------------------------------------
+      const isOhmActive = (focusedScale === 'all' || focusedScale === 'ohm');
+      const rOhm = 336;
+
+      if (focusedScale === 'ohm') {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(CX, CY, rOhm + 12, RAD_LEFT - 0.04, RAD_RIGHT + 0.04, false);
+        ctx.arc(CX, CY, rOhm - 18, RAD_RIGHT + 0.04, RAD_LEFT - 0.04, true);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.22)';
+        ctx.fill();
+        ctx.restore();
+      }
+
+      ctx.beginPath();
+      ctx.arc(CX, CY, rOhm, RAD_LEFT, RAD_RIGHT, false);
+      ctx.strokeStyle = isOhmActive ? '#1e3a8a' : '#94a3b8';
+      ctx.lineWidth = isOhmActive ? (focusedScale === 'ohm' ? 3.5 : 2.2) : 1;
+      ctx.stroke();
+
+      const ohmMarks = [
+        { val: 0, text: '0' }, { val: 1, text: '1' }, { val: 2, text: '2' },
+        { val: 3, text: '3' }, { val: 5, text: '5' }, { val: 10, text: '10' },
+        { val: 20, text: '20' }, { val: 30, text: '30' }, { val: 50, text: '50' },
+        { val: 100, text: '100' }, { val: 200, text: '200' }, { val: 500, text: '500' },
+        { val: 1000, text: '1k' }, { val: 2000, text: '2k' }, { val: Infinity, text: '∞' }
+      ];
+
+      const ohmSubticks = [
+        0.2, 0.4, 0.6, 0.8, 1.2, 1.4, 1.6, 1.8, 2.2, 2.4, 2.6, 2.8,
+        3.5, 4, 4.5, 6, 7, 8, 9, 12, 14, 16, 18, 22, 24, 26, 28,
+        35, 40, 45, 60, 70, 80, 90, 120, 140, 160, 180, 250, 300, 400, 700
+      ];
+
+      ohmSubticks.forEach(rx => {
+        const t = calcTFromOhm(rx);
+        const ang = getAngle(t);
+        drawTick(CX, CY, ang, rOhm, 7, isOhmActive ? '#1e3a8a' : '#cbd5e1', 1.2);
+      });
+
+      ohmMarks.forEach(m => {
+        const t = calcTFromOhm(m.val);
+        const ang = getAngle(t);
+        drawTick(CX, CY, ang, rOhm, 13, isOhmActive ? '#1e3a8a' : '#94a3b8', isOhmActive ? 2.2 : 1.2);
+        drawText(CX, CY, ang, rOhm + 16, m.text, isOhmActive ? '#1e3a8a' : '#94a3b8', 'bold 13px sans-serif');
+      });
+
+      drawText(CX, CY, RAD_LEFT - 0.05, rOhm, 'Ω', isOhmActive ? '#1e3a8a' : '#94a3b8', 'bold 18px sans-serif');
+      drawText(CX, CY, RAD_RIGHT + 0.05, rOhm, 'Ω', isOhmActive ? '#1e3a8a' : '#94a3b8', 'bold 18px sans-serif');
+
+      // -------------------------------------------------------------
+      // 2. THANG ĐO 0-10, 0-50, 0-250 (ARC CƠ BẢN)
+      // -------------------------------------------------------------
+      const rDC = 260;
+
+      // Glow highlight for focused scales
+      if (focusedScale === 's250') {
+        drawArcGlow(rDC - 46, 18, 'rgba(239, 68, 68, 0.25)');
+      } else if (focusedScale === 's50') {
+        drawArcGlow(rDC - 31, 18, 'rgba(16, 185, 129, 0.25)');
+      } else if (focusedScale === 's10') {
+        drawArcGlow(rDC - 16, 18, 'rgba(245, 158, 11, 0.25)');
+      }
+
+      ctx.beginPath();
+      ctx.arc(CX, CY, rDC, RAD_LEFT, RAD_RIGHT, false);
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+
+      for (let i = 0; i <= 50; i++) {
+        const t = i / 50;
+        const ang = getAngle(t);
+        const isMajor = (i % 10 === 0);
+        const isMid = (i % 5 === 0);
+        const tickLen = isMajor ? 14 : (isMid ? 9 : 5.5);
+        drawTick(CX, CY, ang, rDC, tickLen, '#0f172a', isMajor ? 2.2 : 1.2);
+
+        if (isMajor) {
+          const idx = i / 10;
+          const num10 = (idx * 2);
+          const num50 = (idx * 10);
+          const num250 = (idx * 50);
+
+          const col10 = (focusedScale === 'all' || focusedScale === 's10') ? (focusedScale === 's10' ? '#d97706' : '#0f172a') : '#cbd5e1';
+          const col50 = (focusedScale === 'all' || focusedScale === 's50') ? (focusedScale === 's50' ? '#059669' : '#0f172a') : '#cbd5e1';
+          const col250 = (focusedScale === 'all' || focusedScale === 's250') ? (focusedScale === 's250' ? '#dc2626' : '#0f172a') : '#cbd5e1';
+
+          drawText(CX, CY, ang, rDC - 16, num10.toString(), col10, 'bold 13px sans-serif');
+          drawText(CX, CY, ang, rDC - 31, num50.toString(), col50, 'bold 13px sans-serif');
+          drawText(CX, CY, ang, rDC - 46, num250.toString(), col250, 'bold 13px sans-serif');
+        }
+      }
+
+      // Nhãn DCV.A & ACV
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('DCV.A', 40, 275);
+      ctx.fillText('& ACV', 40, 290);
+
+      ctx.textAlign = 'right';
+      ctx.fillText('DCV.A', 680, 275);
+      ctx.fillText('& ACV', 680, 290);
+
+      // Logo Sanwa
+      ctx.fillStyle = '#dc2626';
+      ctx.font = 'bold 18px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('sanwa', 120, 365);
+
+      ctx.fillStyle = '#1e293b';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText('YX-360TR', 120, 382);
+
+      // -------------------------------------------------------------
+      // 3. KIM CHỈ THỊ (POINTER)
+      // -------------------------------------------------------------
+      ctx.save();
+      ctx.translate(CX, CY);
+      ctx.rotate(curAngle + Math.PI / 2);
+
+      // Thân kim
+      ctx.beginPath();
+      ctx.moveTo(-3.5, 0);
+      ctx.lineTo(-0.8, -370);
+      ctx.lineTo(0.8, -370);
+      ctx.lineTo(3.5, 0);
+      ctx.fillStyle = '#0f172a';
+      ctx.fill();
+
+      // Đầu kim siêu mảnh đỏ
+      ctx.beginPath();
+      ctx.moveTo(-0.9, -245);
+      ctx.lineTo(-0.5, -375);
+      ctx.lineTo(0.5, -375);
+      ctx.lineTo(0.9, -245);
+      ctx.fillStyle = '#dc2626';
+      ctx.fill();
+
+      // Đuôi đối trọng
+      ctx.beginPath();
+      ctx.arc(0, 24, 11, 0, Math.PI * 2);
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.restore();
+
+      // Nắp che cơ cấu kim
+      ctx.fillStyle = '#e2e8f0';
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(CX - 65, CY - 25, 130, 60, 4);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1;
+      for (let y = CY - 20; y <= CY + 30; y += 5) {
+        ctx.beginPath();
+        ctx.moveTo(CX - 63, y);
+        ctx.lineTo(CX + 63, y);
+        ctx.stroke();
+      }
+
+      ctx.beginPath();
+      ctx.arc(CX, CY + 8, 11, 0, Math.PI * 2);
+      const capGrad = ctx.createRadialGradient(CX - 2, CY + 6, 2, CX, CY + 8, 11);
+      capGrad.addColorStop(0, '#ffffff');
+      capGrad.addColorStop(0.6, '#94a3b8');
+      capGrad.addColorStop(1, '#475569');
+      ctx.fillStyle = capGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#334155';
+      ctx.stroke();
+    }
+
+    function drawArcGlow(radius, height, color) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(CX, CY, radius + height/2, RAD_LEFT - 0.04, RAD_RIGHT + 0.04, false);
+      ctx.arc(CX, CY, radius - height/2, RAD_RIGHT + 0.04, RAD_LEFT - 0.04, true);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawTick(cx, cy, angle, radius, length, color, lineWidth) {
+      const x1 = cx + Math.cos(angle) * radius;
+      const y1 = cy + Math.sin(angle) * radius;
+      const x2 = cx + Math.cos(angle) * (radius - length);
+      const y2 = cy + Math.sin(angle) * (radius - length);
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.stroke();
+    }
+
+    function drawText(cx, cy, angle, radius, text, color, font) {
+      const x = cx + Math.cos(angle) * radius;
+      const y = cy + Math.sin(angle) * radius;
+      ctx.fillStyle = color;
+      ctx.font = font;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, x, y);
+    }
+
+    function render() {
+      drawDial();
+      posPercent.innerText = (needleFraction * 100).toFixed(1) + '%';
+      slider.value = Math.round(needleFraction * 1000);
+      updateReadouts();
+    }
+
+    function updateReadouts() {
+      // 1. Thang Ohm
+      const rawOhm = calcOhmValue(needleFraction);
+      let ohmStr = '';
+      if (!isFinite(rawOhm)) ohmStr = '∞ Ω';
+      else if (rawOhm < 0.05) ohmStr = '0.0 Ω';
+      else if (rawOhm >= 1000) ohmStr = (rawOhm / 1000).toFixed(1) + ' kΩ';
+      else ohmStr = rawOhm.toFixed(1) + ' Ω';
+
+      document.getElementById('valOhm').innerText = ohmStr;
+      document.getElementById('formOhm').innerText = `Vạch đọc: ${isFinite(rawOhm) ? rawOhm.toFixed(1) : '∞'} Ω`;
+
+      // 2. Thang 250
+      const val250 = needleFraction * 250;
+      const major250 = Math.floor(val250 / 50) * 50;
+      const subTicks250 = (val250 - major250) / 5;
+      document.getElementById('val250').innerText = val250.toFixed(1);
+      document.getElementById('form250').innerText = `${major250} + (${subTicks250.toFixed(1)} vạch × 5) = ${val250.toFixed(1)}`;
+
+      // 3. Thang 50
+      const val50 = needleFraction * 50;
+      const major50 = Math.floor(val50 / 10) * 10;
+      const subTicks50 = val50 - major50;
+      document.getElementById('val50').innerText = val50.toFixed(1);
+      document.getElementById('form50').innerText = `${major50} + (${subTicks50.toFixed(1)} vạch × 1) = ${val50.toFixed(1)}`;
+
+      // 4. Thang 10
+      const val10 = needleFraction * 10;
+      const major10 = Math.floor(val10 / 2) * 2;
+      const subTicks10 = (val10 - major10) / 0.2;
+      document.getElementById('val10').innerText = val10.toFixed(2);
+      document.getElementById('form10').innerText = `${major10} + (${subTicks10.toFixed(1)} vạch × 0.2) = ${val10.toFixed(2)}`;
+
+      // Ẩn/hiện card theo bộ lọc
+      document.getElementById('cardOhm').style.display = (focusedScale === 'all' || focusedScale === 'ohm') ? 'block' : 'none';
+      document.getElementById('card250').style.display = (focusedScale === 'all' || focusedScale === 's250') ? 'block' : 'none';
+      document.getElementById('card50').style.display = (focusedScale === 'all' || focusedScale === 's50') ? 'block' : 'none';
+      document.getElementById('card10').style.display = (focusedScale === 'all' || focusedScale === 's10') ? 'block' : 'none';
+    }
+
+    function selectFocusScale(scale) {
+      focusedScale = scale;
+      document.querySelectorAll('.scale-tab-btn').forEach(btn => btn.className = 'scale-tab-btn');
+      
+      if (scale === 'all') document.getElementById('tabAll').className = 'scale-tab-btn active-all';
+      else if (scale === 'ohm') document.getElementById('tabOhm').className = 'scale-tab-btn active-ohm';
+      else if (scale === 's250') document.getElementById('tab250').className = 'scale-tab-btn active-s250';
+      else if (scale === 's50') document.getElementById('tab50').className = 'scale-tab-btn active-s50';
+      else if (scale === 's10') document.getElementById('tab10').className = 'scale-tab-btn active-s10';
+
+      render();
+
+      if (currentMode === 'quiz') {
+        generateNewQuiz();
+      }
+    }
+
+    function setNeedleFromPos(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = 720 / rect.width;
+      const scaleY = 410 / rect.height;
+      const x = (clientX - rect.left) * scaleX;
+      const y = (clientY - rect.top) * scaleY;
+
+      const dx = x - CX;
+      const dy = y - CY;
+      let deg = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+
+      if (deg < 180) deg = 180;
+      if (deg > 340) deg = 340;
+
+      const t = (deg - DEG_LEFT) / (DEG_RIGHT - DEG_LEFT);
+      needleFraction = Math.max(0, Math.min(1, t));
+      render();
+    }
+
+    function updateMagnifier(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const relX = clientX - rect.left;
+      const relY = clientY - rect.top;
+
+      if (relX < 0 || relX > rect.width || relY < 0 || relY > rect.height) {
+        magnifier.style.display = 'none';
+        return;
+      }
+
+      magnifier.style.display = 'block';
+      magnifier.style.left = Math.max(8, Math.min(rect.width - 150, relX - 70)) + 'px';
+      magnifier.style.top = Math.max(8, relY - 150) + 'px';
+
+      const scaleX = 720 / rect.width;
+      const scaleY = 410 / rect.height;
+      const srcX = relX * scaleX;
+      const srcY = relY * scaleY;
+
+      magCtx.clearRect(0, 0, 140, 140);
+      magCtx.drawImage(
+        canvas,
+        srcX - 35, srcY - 35, 70, 70,
+        0, 0, 140, 140
+      );
+
+      magCtx.strokeStyle = 'rgba(56, 189, 248, 0.8)';
+      magCtx.lineWidth = 1.5;
+      magCtx.beginPath();
+      magCtx.moveTo(70, 0); magCtx.lineTo(70, 140);
+      magCtx.moveTo(0, 70); magCtx.lineTo(140, 70);
+      magCtx.stroke();
+    }
+
+    // Touch & Mouse
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      setNeedleFromPos(e.clientX, e.clientY);
+      updateMagnifier(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        setNeedleFromPos(e.clientX, e.clientY);
+        updateMagnifier(e.clientX, e.clientY);
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+      magnifier.style.display = 'none';
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      isDragging = true;
+      const touch = e.touches[0];
+      setNeedleFromPos(touch.clientX, touch.clientY);
+      updateMagnifier(touch.clientX, touch.clientY);
+      e.preventDefault();
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+      if (isDragging && e.touches.length > 0) {
+        const touch = e.touches[0];
+        setNeedleFromPos(touch.clientX, touch.clientY);
+        updateMagnifier(touch.clientX, touch.clientY);
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchend', () => {
+      isDragging = false;
+      magnifier.style.display = 'none';
+    });
+
+    slider.addEventListener('input', (e) => {
+      needleFraction = parseInt(e.target.value) / 1000;
+      render();
+    });
+
+    document.getElementById('btnFineLeft').addEventListener('click', () => {
+      needleFraction = Math.max(0, needleFraction - 0.02);
+      render();
+    });
+    document.getElementById('btnFineRight').addEventListener('click', () => {
+      needleFraction = Math.min(1, needleFraction + 0.02);
+      render();
+    });
+    document.getElementById('btnRand').addEventListener('click', () => {
+      const randomTick = Math.floor(Math.random() * 49) + 1;
+      needleFraction = randomTick / 50;
+      render();
+    });
+    document.getElementById('btnPresetZero').addEventListener('click', () => { needleFraction = 0; render(); });
+    document.getElementById('btnPresetMid').addEventListener('click', () => { needleFraction = 0.5; render(); });
+    document.getElementById('btnPresetMax').addEventListener('click', () => { needleFraction = 1.0; render(); });
+
+    function switchMode(mode) {
+      currentMode = mode;
+      document.getElementById('tabExplore').classList.toggle('active', mode === 'explore');
+      document.getElementById('tabQuiz').classList.toggle('active', mode === 'quiz');
+      document.getElementById('panelExplore').style.display = mode === 'explore' ? 'flex' : 'none';
+      document.getElementById('panelQuiz').style.display = mode === 'quiz' ? 'flex' : 'none';
+
+      if (mode === 'quiz') {
+        generateNewQuiz();
+      }
+    }
+
+    // QUIZ ENGINE
+    let currentQuiz = null;
+    let stats = { correct: 0, total: 0, streak: 0 };
+
+    function generateNewQuiz() {
+      let type = focusedScale;
+      if (type === 'all') {
+        const available = ['ohm', 's250', 's50', 's10'];
+        type = available[Math.floor(Math.random() * available.length)];
+      }
+
+      const tick = Math.floor(Math.random() * 49) + 1;
+      needleFraction = tick / 50;
+      render();
+
+      const feedbackBox = document.getElementById('quizFeedback');
+      feedbackBox.className = 'feedback-box';
+      feedbackBox.style.display = 'none';
+      document.getElementById('quizUserAnswer').value = '';
+      document.getElementById('quizUserAnswer').focus();
+      document.getElementById('quizHintText').style.display = 'none';
+
+      const badge = document.getElementById('quizScaleBadge');
+
+      if (type === 'ohm') {
+        const correctVal = calcOhmValue(needleFraction);
+        badge.innerText = '🔵 Thang Ohm (0 - ∞ Ω)';
+        badge.style.background = '#0284c7';
+        document.getElementById('quizUnit').innerText = 'Ω';
+
+        currentQuiz = {
+          type: 'ohm',
+          correctVal: correctVal,
+          prompt: `Đọc giá trị trên <strong>Cung Ohm trên cùng</strong>:`,
+          hint: `Đọc từ phải qua trái: Kim chỉ khoảng <strong>${correctVal.toFixed(1)} Ω</strong>.`
+        };
+      } 
+      else if (type === 's250') {
+        const val250 = needleFraction * 250;
+        const major = Math.floor(val250 / 50) * 50;
+        const sub = (val250 - major) / 5;
+
+        badge.innerText = '🔴 Vạch 0 - 250';
+        badge.style.background = '#dc2626';
+        document.getElementById('quizUnit').innerText = '';
+
+        currentQuiz = {
+          type: 's250',
+          correctVal: val250,
+          prompt: `Đọc giá trị trên <strong>Hàng số 0 - 250</strong> (dưới cùng):`,
+          hint: `${major} + (${sub} vạch × 5) = <strong>${val250.toFixed(1)}</strong>.`
+        };
+      }
+      else if (type === 's50') {
+        const val50 = needleFraction * 50;
+        const major = Math.floor(val50 / 10) * 10;
+        const sub = val50 - major;
+
+        badge.innerText = '🟢 Vạch 0 - 50';
+        badge.style.background = '#059669';
+        document.getElementById('quizUnit').innerText = '';
+
+        currentQuiz = {
+          type: 's50',
+          correctVal: val50,
+          prompt: `Đọc giá trị trên <strong>Hàng số 0 - 50</strong> (hàng giữa):`,
+          hint: `${major} + (${sub} vạch × 1) = <strong>${val50.toFixed(1)}</strong>.`
+        };
+      }
+      else {
+        const val10 = needleFraction * 10;
+        const major = Math.floor(val10 / 2) * 2;
+        const sub = (val10 - major) / 0.2;
+
+        badge.innerText = '🟡 Vạch 0 - 10';
+        badge.style.background = '#d97706';
+        document.getElementById('quizUnit').innerText = '';
+
+        currentQuiz = {
+          type: 's10',
+          correctVal: val10,
+          prompt: `Đọc giá trị trên <strong>Hàng số 0 - 10</strong> (hàng trên):`,
+          hint: `${major} + (${sub} vạch × 0.2) = <strong>${val10.toFixed(2)}</strong>.`
+        };
+      }
+
+      document.getElementById('quizPrompt').innerHTML = currentQuiz.prompt;
+    }
+
+    function checkQuizAnswer() {
+      if (!currentQuiz) return;
+      const userVal = parseFloat(document.getElementById('quizUserAnswer').value);
+      const feedbackBox = document.getElementById('quizFeedback');
+
+      if (isNaN(userVal)) {
+        feedbackBox.className = 'feedback-box wrong';
+        feedbackBox.innerHTML = '⚠️ Vui lòng nhập số kết quả!';
+        feedbackBox.style.display = 'block';
+        return;
+      }
+
+      stats.total++;
+      const target = currentQuiz.correctVal;
+      const tolerance = Math.max(0.1, Math.abs(target * 0.04));
+      const isCorrect = Math.abs(userVal - target) <= tolerance;
+
+      if (isCorrect) {
+        stats.correct++;
+        stats.streak++;
+        feedbackBox.className = 'feedback-box correct';
+        feedbackBox.innerHTML = `🎉 <strong>CHÍNH XÁC!</strong> Giá trị đọc là <strong>${target.toFixed(currentQuiz.type === 's10' ? 2 : 1)}</strong>.`;
+      } else {
+        stats.streak = 0;
+        feedbackBox.className = 'feedback-box wrong';
+        feedbackBox.innerHTML = `❌ <strong>CHƯA ĐÚNG!</strong> Đáp án chuẩn: <strong>${target.toFixed(currentQuiz.type === 's10' ? 2 : 1)}</strong> (Bạn nhập: ${userVal}).<br>${currentQuiz.hint}`;
+      }
+
+      document.getElementById('statCorrect').innerText = stats.correct;
+      document.getElementById('statTotal').innerText = stats.total;
+      document.getElementById('statStreak').innerText = stats.streak + ' 🔥';
+      feedbackBox.style.display = 'block';
+    }
+
+    function revealQuizHint() {
+      if (!currentQuiz) return;
+      const hintDiv = document.getElementById('quizHintText');
+      hintDiv.innerHTML = currentQuiz.hint;
+      hintDiv.style.display = 'block';
+    }
+
+    window.addEventListener('resize', () => {
+      fixDpi();
+      render();
+    });
+
+    // Start
+    fixDpi();
+    render();
+  </script>
+</body>
+</html>
